@@ -147,6 +147,9 @@ func (u UTXOSet) Update(block *Block) {
 		b := tx.Bucket([]byte(utxoBucket))
 
 		for _, tx := range block.Transactions {
+			if tx.Form == "store" {
+				continue
+			}
 			if tx.IsCoinbase() == false {
 				for _, vin := range tx.Vin {
 					updatedOuts := TXOutputs{}

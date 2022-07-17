@@ -163,6 +163,9 @@ func (bc *Blockchain) FindUTXO() map[string]TXOutputs {
 		block := bci.Next()
 
 		for _, tx := range block.Transactions {
+			if tx.Form == "store" {
+				continue
+			}
 			txID := hex.EncodeToString(tx.ID)
 
 		Outputs:
@@ -271,9 +274,11 @@ func (bc *Blockchain) MineBlock(transactions []*Transaction) *Block {
 	var lastHeight int
 
 	for _, tx := range transactions {
-		// TODO: ignore transaction if it's not valid
-		if bc.VerifyTransaction(tx) != true {
-			log.Panic("ERROR: Invalid transaction")
+		if tx.Form != "store" {
+			// TODO: ignore transaction if it's not valid
+			if bc.VerifyTransaction(tx) != true {
+				log.Panic("ERROR: Invalid transaction")
+			}
 		}
 	}
 
@@ -334,7 +339,7 @@ func (bc *Blockchain) SignTransaction(tx *Transaction, privKey ecdsa.PrivateKey)
 
 // VerifyTransaction verifies transaction input signatures
 func (bc *Blockchain) VerifyTransaction(tx *Transaction) bool {
-	if tx.IsCoinbase() {
+	if tx.IsCoinbase() || tx.Form == "store" {
 		return true
 	}
 

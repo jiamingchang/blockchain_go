@@ -5,12 +5,12 @@ import (
 	"strconv"
 )
 
-func (cli *CLI) printChain(nodeID string) {
+func (cli *CLI) printChain(nodeID string) []*Block {
 	bc := NewBlockchain(nodeID)
 	defer bc.db.Close()
 
 	bci := bc.Iterator()
-
+	var blocks []*Block
 	for {
 		block := bci.Next()
 
@@ -24,8 +24,10 @@ func (cli *CLI) printChain(nodeID string) {
 		}
 		fmt.Printf("\n\n")
 
+		blocks = append(blocks, block)
 		if len(block.PrevBlockHash) == 0 {
 			break
 		}
 	}
+	return blocks
 }

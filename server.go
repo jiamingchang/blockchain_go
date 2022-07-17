@@ -156,7 +156,7 @@ func sendTx(addr string, tnx *Transaction) {
 	data := tx{nodeAddress, tnx.Serialize()}
 	payload := gobEncode(data)
 	request := append(commandToBytes("tx"), payload...)
-
+	//request包括了序列化后的交易node地址和交易，他的类型是tx
 	sendData(addr, request)
 }
 

@@ -5,9 +5,10 @@ import (
 	"log"
 )
 
-func (cli *CLI) getBalance(address, nodeID string) {
+func (cli *CLI) getBalance(address, nodeID string) (int, bool) {
 	if !ValidateAddress(address) {
 		log.Panic("ERROR: Address is not valid")
+		return 0, false
 	}
 	bc := NewBlockchain(nodeID)
 	UTXOSet := UTXOSet{bc}
@@ -23,4 +24,5 @@ func (cli *CLI) getBalance(address, nodeID string) {
 	}
 
 	fmt.Printf("Balance of '%s': %d\n", address, balance)
+	return balance, true
 }

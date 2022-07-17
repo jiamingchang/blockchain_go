@@ -20,12 +20,16 @@ const subsidy = 10
 // Transaction represents a Bitcoin transaction
 type Transaction struct {
 	ID   []byte
+	Form string //声明交易的类型
 	Vin  []TXInput
 	Vout []TXOutput
 }
 
 // IsCoinbase checks whether the transaction is coinbase
 func (tx Transaction) IsCoinbase() bool {
+	if tx.Form == "store" {
+		return false
+	}
 	return len(tx.Vin) == 1 && len(tx.Vin[0].Txid) == 0 && tx.Vin[0].Vout == -1
 }
 
@@ -91,6 +95,7 @@ func (tx Transaction) String() string {
 	var lines []string
 
 	lines = append(lines, fmt.Sprintf("--- Transaction %x:", tx.ID))
+	lines = append(lines, fmt.Sprintf("Type of Transaction is:\033[1;31;40m%s\033[0m\n", tx.Form))
 
 	for i, input := range tx.Vin {
 
@@ -123,7 +128,7 @@ func (tx *Transaction) TrimmedCopy() Transaction {
 		outputs = append(outputs, TXOutput{vout.Value, vout.PubKeyHash})
 	}
 
-	txCopy := Transaction{tx.ID, inputs, outputs}
+	txCopy := Transaction{tx.ID, tx.Form, inputs, outputs}
 
 	return txCopy
 }
@@ -186,7 +191,7 @@ func NewCoinbaseTX(to, data string) *Transaction {
 
 	txin := TXInput{[]byte{}, -1, nil, []byte(data)}
 	txout := NewTXOutput(subsidy, to)
-	tx := Transaction{nil, []TXInput{txin}, []TXOutput{*txout}}
+	tx := Transaction{nil, "transaction", []TXInput{txin}, []TXOutput{*txout}}
 	tx.ID = tx.Hash()
 
 	return &tx
@@ -224,7 +229,7 @@ func NewUTXOTransaction(wallet *Wallet, to string, amount int, UTXOSet *UTXOSet)
 		outputs = append(outputs, *NewTXOutput(acc-amount, from)) // a change
 	}
 
-	tx := Transaction{nil, inputs, outputs}
+	tx := Transaction{nil, "transaction", inputs, outputs}
 	tx.ID = tx.Hash()
 	UTXOSet.Blockchain.SignTransaction(&tx, wallet.PrivateKey)
 
