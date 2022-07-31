@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/gob"
 	"encoding/hex"
 	"fmt"
@@ -390,7 +391,8 @@ func handleVersion(request []byte, bc *Blockchain) {
 func handleConnection(conn net.Conn, bc *Blockchain) {
 	request, err := ioutil.ReadAll(conn)
 	if err != nil {
-		log.Panic(err)
+		log.Println(err)
+		return
 	}
 	command := bytesToCommand(request[:commandLength])
 	fmt.Printf("Received %s command\n", command)
@@ -418,14 +420,13 @@ func handleConnection(conn net.Conn, bc *Blockchain) {
 }
 
 // StartServer starts a node
-func StartServer(nodeID, minerAddress string) {
+func StartServer(ctx context.Context, nodeID, minerAddress string) {
 	nodeAddress = fmt.Sprintf("localhost:%s", nodeID)
 	miningAddress = minerAddress
 	ln, err := net.Listen(protocol, nodeAddress)
 	if err != nil {
-		log.Panic(err)
+		log.Println(err)
 	}
-	defer ln.Close()
 
 	bc := NewBlockchain(nodeID)
 
@@ -433,10 +434,27 @@ func StartServer(nodeID, minerAddress string) {
 		sendVersion(knownNodes[0], bc)
 	}
 
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				log.Println("我是傻逼")
+				// 关闭net连接
+				ln.Close()
+				// bolt单链接，必须关闭该db
+				bc.db.Close()
+				return
+			}
+		}
+	}()
+
 	for {
+		// accept()会阻塞
 		conn, err := ln.Accept()
 		if err != nil {
-			log.Panic(err)
+			log.Println(err)
+			// stopNode
+			return
 		}
 		go handleConnection(conn, bc)
 	}

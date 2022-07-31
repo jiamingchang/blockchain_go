@@ -86,7 +86,14 @@ func send(context *gin.Context){
 func startNode(context *gin.Context){
 	startNodeMiner := context.PostForm("startNodeMiner")
 	nodeID := context.PostForm("nodeID")
-	ok := cli.startNode(nodeID, startNodeMiner)
+	cli.startNode(nodeID, startNodeMiner)
+	context.JSON(200, gin.H{
+		"isSuccess": true,
+	})
+}
+func stopNode(context *gin.Context){
+	nodeID := context.PostForm("nodeID")
+	ok := cli.stopNode(nodeID)
 	context.JSON(200, gin.H{
 		"isSuccess": ok,
 	})

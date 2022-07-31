@@ -27,7 +27,8 @@ func CreateBlockchain(address, nodeID string) *Blockchain {
 	dbFile := fmt.Sprintf(dbFile, nodeID)
 	if dbExists(dbFile) {
 		fmt.Println("Blockchain already exists.")
-		os.Exit(1)
+		//os.Exit(1)
+		return nil
 	}
 
 	var tip []byte

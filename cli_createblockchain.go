@@ -11,6 +11,9 @@ func (cli *CLI) createBlockchain(address, nodeID string) bool {
 		return false
 	}
 	bc := CreateBlockchain(address, nodeID)
+	if bc == nil{
+		return false
+	}
 	defer bc.db.Close()
 
 	UTXOSet := UTXOSet{bc}
