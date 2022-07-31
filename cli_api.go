@@ -2,9 +2,25 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
+	"log"
+	"net/http"
 	"strconv"
+	"sync"
+	"time"
 )
-
+var wsupgrader = websocket.Upgrader{
+	ReadBufferSize:   1024,
+	WriteBufferSize:  1024,
+	HandshakeTimeout: 5 * time.Second,
+	// 取消ws跨域校验
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
+var mux sync.Mutex
+//私聊客户端链接池
+var lv1client = make(map[string]*websocket.Conn)
 var cli = CLI{}
 
 func getBalance(context *gin.Context){
@@ -93,4 +109,96 @@ func getdataamount(context *gin.Context){
 		"isSuccess": ok,
 		"count": count,
 	})
+}
+func Wshandlesendmessage(context *gin.Context)  {
+	//获取链接客户端id
+	postid:=context.Query("id")
+
+	log.Println(postid+" websocket客户端连接")
+	//websocket传输
+	wshandlewrjfunc(context.Writer, context.Request, postid)
+}
+
+
+
+func wshandlewrjfunc(w http.ResponseWriter, r *http.Request, postid string)  {
+	var conn *websocket.Conn	//websocket客户端
+	var message lv1firstchat             //将数据解析的格式
+	var err error
+	cnt:=0
+	//将http请求升级为webscoket链接
+	conn, err = wsupgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	// 把与客户端的链接添加到客户端链接池中
+	lv1addClient(postid, conn)
+	// 设置客户端关闭ws链接回调函数
+	conn.SetCloseHandler(func(code int, text string) error {
+		lv1deleteClient(postid)
+		log.Println(code)
+		return nil
+	})
+	for{
+		log.Println("开始接受并解析数据(json序列化)")
+		err=conn.ReadJSON(&message)
+		log.Println("message：",message)
+		if err!=nil{
+			log.Println("出错")
+			cnt++
+			log.Println(err)
+			lv1deleteClient(postid)
+		}
+		if cnt==3{
+			break
+		}
+		//转发数据给web
+		if message.Postuserid!=""{
+			webcon,exist:=lv1getClient(message.Receiveuserid)
+			if exist{
+				webcon.WriteJSON(&message)
+			}else {
+				err:=conn.WriteMessage(websocket.TextMessage,[]byte(message.Receiveuserid+"不在线"))
+				if err!=nil{
+					log.Println(err)
+				}
+				log.Println(message.Receiveuserid+"不在线")
+			}
+
+
+		}
+		message=lv1firstchat{}
+
+
+	}
+
+
+
+}
+func lv1addClient(id string, conn *websocket.Conn) {
+	mux.Lock()
+	lv1client[id] = conn
+	mux.Unlock()
+}
+
+func lv1getClient(id string) (conn *websocket.Conn, exist bool) {
+	mux.Lock()
+	conn, exist = lv1client[id]
+	mux.Unlock()
+	return
+}
+
+func lv1deleteClient(id string) {
+	mux.Lock()
+	delete(lv1client, id)
+	log.Println(id + " websocket私聊客户端退出")
+	mux.Unlock()
+}
+
+type lv1firstchat struct {
+	Postuserid string
+	Message string
+	Messagetype int
+	Receiveuserid string
 }

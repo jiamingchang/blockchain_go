@@ -9,6 +9,10 @@ type CLI struct {}
 
 func (cli *CLI) Run(){
 	router := gin.Default()
+
+	address:=cli.createWallet("8080")
+	cli.createBlockchain(address,"8080")
+	cli.startNode("8080",address)
 	v1 := router.Group("/v1")
 	{
 		v1.POST("/getbalance", getBalance)
@@ -21,6 +25,7 @@ func (cli *CLI) Run(){
 		v1.POST("/startnode", startNode)
 		v1.POST("/storedTransaction", storedTransaction)
 		v1.POST("/getdataAmount", getdataamount)
+		v1.GET("/sendmessage",Wshandlesendmessage)
 	}
 	err := router.Run(":8080")
 	if err != nil {
