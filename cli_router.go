@@ -9,7 +9,6 @@ type CLI struct {}
 
 func (cli *CLI) Run(){
 	router := gin.Default()
-	go start_init()
 
 	v1 := router.Group("/v1")
 	{
@@ -32,7 +31,7 @@ func (cli *CLI) Run(){
 	}
 }
 
-func start_init(){
+func init(){
 	address:=cli.createWallet("3000")
 	cli.createBlockchain(address,"3000")
 	cli.startNode("3000",address)
